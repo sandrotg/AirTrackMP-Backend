@@ -1,10 +1,13 @@
 package com.airtrackmp.iot.airtrackmp.controller;
 
+import com.airtrackmp.iot.airtrackmp.dto.MeasurementAverageDto;
 import com.airtrackmp.iot.airtrackmp.dto.MeasurementRequest;
 import com.airtrackmp.iot.airtrackmp.entity.Measurement;
 import com.airtrackmp.iot.airtrackmp.service.MeasurementService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -37,4 +40,22 @@ public class MeasurementController {
     public ResponseEntity<List<Measurement>> getAll(){
         return ResponseEntity.ok(measurementService.getAllMeasurements());
     }
+
+    @GetMapping("/node/{nodeId}/average")
+    public ResponseEntity<List<MeasurementAverageDto>> getAverages(
+            @PathVariable Integer nodeId,
+            @RequestParam String from,
+            @RequestParam String to,
+            @RequestParam String groupBy
+    ){
+        return ResponseEntity.ok(
+                measurementService.getAverages(
+                        nodeId,
+                        LocalDateTime.parse(from),
+                        LocalDateTime.parse(to),
+                        groupBy
+                )
+        );
+    }
+
 }

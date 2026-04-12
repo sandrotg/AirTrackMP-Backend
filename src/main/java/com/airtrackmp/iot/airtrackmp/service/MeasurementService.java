@@ -1,5 +1,6 @@
 package com.airtrackmp.iot.airtrackmp.service;
 
+import com.airtrackmp.iot.airtrackmp.dto.MeasurementAverageDto;
 import com.airtrackmp.iot.airtrackmp.dto.MeasurementRequest;
 import com.airtrackmp.iot.airtrackmp.entity.Measurement;
 import com.airtrackmp.iot.airtrackmp.entity.Node;
@@ -54,5 +55,14 @@ public class MeasurementService {
 
     public List<Measurement> getAllMeasurements(){
         return measurementRepo.findAll();
+    }
+
+    public List<MeasurementAverageDto> getAverages(
+            Integer nodeId,
+            LocalDateTime from,
+            LocalDateTime to,
+            String groupBy
+    ){
+        return measurementRepo.getAverages(nodeId, from, to, groupBy);
     }
 }
