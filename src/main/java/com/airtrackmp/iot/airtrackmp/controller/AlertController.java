@@ -1,0 +1,40 @@
+package com.airtrackmp.iot.airtrackmp.controller;
+
+import com.airtrackmp.iot.airtrackmp.dto.AlertRequest;
+import com.airtrackmp.iot.airtrackmp.entity.Alert;
+import com.airtrackmp.iot.airtrackmp.service.AlertService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/alert")
+public class AlertController {
+
+    private final AlertService alertService;
+
+    public AlertController (AlertService alertService) {
+        this.alertService = alertService;
+    }
+
+    @PostMapping
+    public ResponseEntity<Alert> createAlert (@RequestBody AlertRequest request) {
+        return ResponseEntity.ok(alertService.SaveAlert(request));
+    }
+
+    @GetMapping("/alert/{nodeId}")
+    public ResponseEntity<List<Alert>> findByNodeId (@PathVariable Integer nodeId) {
+        return ResponseEntity.ok(alertService.findAlertsByNodeId(nodeId));
+    }
+
+    @GetMapping("/alert/{measurementId}")
+    public ResponseEntity<Alert> findByMeasurementId (@PathVariable Integer measurementId) {
+        return ResponseEntity.ok(alertService.findAlertByMeasurement(measurementId));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Alert>> findAll () {
+        return ResponseEntity.ok(alertService.findAllAlerts());
+    }
+}

@@ -1,11 +1,17 @@
 package com.airtrackmp.iot.airtrackmp.entity;
 
 import jakarta.persistence.*;
+import lombok.*;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "alerts")
-
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Alert {
 
     @Id
