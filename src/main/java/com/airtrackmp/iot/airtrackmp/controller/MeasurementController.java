@@ -26,9 +26,10 @@ public class MeasurementController {
         return ResponseEntity.ok(saved);
     }
 
-    @GetMapping("/node/{nodeId}")
-    public ResponseEntity<List<Measurement>> getByNode(@PathVariable Integer nodeId){
-        return ResponseEntity.ok(measurementService.getMeasurementsByNode(nodeId));
+    @PostMapping("/bulk")
+    public ResponseEntity<List<Measurement>> createMeasurementsBulk(@RequestBody List<MeasurementRequest> requests){
+        List<Measurement> listSaved = measurementService.saveMeasurementBulk(requests);
+        return ResponseEntity.ok(listSaved);
     }
 
     @GetMapping("/node/{nodeId}/latest")
@@ -41,6 +42,22 @@ public class MeasurementController {
         return ResponseEntity.ok(measurementService.getAllMeasurements());
     }
 
+    @GetMapping("/node/{nodeId}")
+    public ResponseEntity<List<Measurement>> getInterval(
+            @PathVariable Integer nodeId,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to
+    ){
+        if(from != null && to != null){
+            return ResponseEntity.ok(measurementService.getIntervalMeasurements(
+                    nodeId,
+                    LocalDateTime.parse(from),
+                    LocalDateTime.parse(to)
+            ));
+        }
+        return ResponseEntity.ok(measurementService.getMeasurementsByNode(nodeId));
+    }
+
     @GetMapping("/node/{nodeId}/average")
     public ResponseEntity<List<MeasurementAverageDto>> getAverages(
             @PathVariable Integer nodeId,
@@ -49,7 +66,7 @@ public class MeasurementController {
             @RequestParam String groupBy
     ){
         return ResponseEntity.ok(
-                measurementService.getAverages(
+                measurementService.getAveragesByNode(
                         nodeId,
                         LocalDateTime.parse(from),
                         LocalDateTime.parse(to),
