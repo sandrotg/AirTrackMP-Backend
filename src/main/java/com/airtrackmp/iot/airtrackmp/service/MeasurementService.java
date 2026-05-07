@@ -9,7 +9,10 @@ import com.airtrackmp.iot.airtrackmp.repository.NodeRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class MeasurementService {
@@ -23,33 +26,71 @@ public class MeasurementService {
     }
 
     public Measurement saveMeasurement(MeasurementRequest request){
-        Node node = nodeRepo.findById(request.getNodeId())
-                .orElseThrow(()-> new RuntimeException("NodeNotFound"));
+        Node node = getActiveNodeOrThrow(request.getNodeId());
         Measurement measurement = Measurement.builder()
                 .node(node)
                 .pm25(request.getPm25())
                 .pm10(request.getPm10())
                 .temperature(request.getTemperature())
                 .humidity(request.getHumidity())
-                .recordedAt(LocalDateTime.now())
+                .recordedAt(
+                        request.getRecordedAt() != null
+                                ? request.getRecordedAt()
+                                : LocalDateTime.now()
+                )
                 .build();
         return measurementRepo.save(measurement);
     }
 
+    public List<Measurement> saveMeasurementBulk(List<MeasurementRequest> requests){
+
+        // 1. Obtener IDs únicos
+        List<Integer> nodeIds = requests.stream()
+                .map(request -> request.getNodeId())
+                .distinct()
+                .toList();
+
+        // 2. Traer nodos en una sola query
+        List<Node> nodes = nodeRepo.findAllById(nodeIds);
+
+        // 3. Convertir a mapa
+        Map<Integer, Node> nodeMap = nodes.stream()
+                .filter(node -> !Boolean.TRUE.equals(node.isDeleted()))
+                .collect(Collectors.toMap(Node::getId, node -> node)); //los :: son methond reference, una forma abreviada de indicar que se ejecuta en la iteracion, evitando escribir node -> node.getId
+
+        List<Measurement> savedMeasurements = new ArrayList<>();
+
+        for(MeasurementRequest request: requests){
+            Node node = nodeMap.get(request.getNodeId());
+
+            if (node == null) throw new RuntimeException("NodeNotFoundOrDeleted: " + request.getNodeId());
+
+            Measurement measurement = Measurement.builder()
+                    .node(node)
+                    .pm25(request.getPm25())
+                    .pm10(request.getPm10())
+                    .temperature(request.getTemperature())
+                    .humidity(request.getHumidity())
+                    .recordedAt(
+                            request.getRecordedAt() != null
+                                    ? request.getRecordedAt()
+                                    : LocalDateTime.now()
+                    ).build();
+            savedMeasurements.add(measurement);
+        }
+        return measurementRepo.saveAll(savedMeasurements);
+    }
+
+
     public List<Measurement> getMeasurementsByNode(Integer nodeId){
 
-        if (!nodeRepo.existsById(nodeId)) {
-            throw new RuntimeException("Node not found");
-        }
-
+        Node node = getActiveNodeOrThrow(nodeId);
         return measurementRepo.findByNodeIdOrderByRecordedAtDesc(nodeId);
     }
 
     public List<Measurement> getLastMeasurements(Integer nodeId){
 
-        if (!nodeRepo.existsById(nodeId)) {
-            throw new RuntimeException("Node not found");
-        }
+        Node node = getActiveNodeOrThrow(nodeId);
         return measurementRepo.findTop10ByNodeIdOrderByRecordedAtDesc(nodeId);
     }
 
@@ -57,12 +98,37 @@ public class MeasurementService {
         return measurementRepo.findAll();
     }
 
-    public List<MeasurementAverageDto> getAverages(
+    public List<MeasurementAverageDto> getAveragesByNode(
             Integer nodeId,
             LocalDateTime from,
             LocalDateTime to,
             String groupBy
     ){
+        Node node = getActiveNodeOrThrow(nodeId);
+        if (from.isAfter(to)) throw new IllegalArgumentException("Invalid date range");
+
         return measurementRepo.getAverages(nodeId, from, to, groupBy);
+    }
+
+    public List<Measurement> getIntervalMeasurements(
+            Integer nodeId,
+            LocalDateTime from,
+            LocalDateTime to
+    ){
+        Node node = getActiveNodeOrThrow(nodeId);
+        if (from.isAfter(to)) throw new IllegalArgumentException("Invalid date range");
+
+        return measurementRepo.getIntervalMeasurements(nodeId, from, to);
+    }
+
+    private Node getActiveNodeOrThrow(Integer nodeId){
+        Node node = nodeRepo.findById(nodeId)
+                .orElseThrow(() -> new RuntimeException("Node Not Found"));
+
+        if (Boolean.TRUE.equals(node.isDeleted())) {
+            throw new RuntimeException("Node Deleted");
+        }
+
+        return node;
     }
 }

@@ -1,6 +1,7 @@
 package com.airtrackmp.iot.airtrackmp.repository;
 
 import com.airtrackmp.iot.airtrackmp.dto.MeasurementAverageDto;
+import com.airtrackmp.iot.airtrackmp.entity.Measurement;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
@@ -48,5 +49,25 @@ public class MeasurementRepositoryImpl implements MeasurementRepositoryCustom{
                 ((Number) obj[3]).doubleValue(),
                 ((Number) obj[4]).doubleValue()
         )).toList();
+    }
+
+    @Override
+    public List<Measurement> getIntervalMeasurements(
+            Integer nodeId,
+            LocalDateTime from,
+            LocalDateTime to
+    ){
+        String sql = """
+    SELECT *
+    FROM measurement m
+    WHERE m.node_id = :nodeId
+      AND m.recorded_at BETWEEN :from AND :to
+    ORDER BY m.recorded_at DESC
+""";
+        return entityManager.createNativeQuery(sql, Measurement.class)
+                .setParameter("nodeId",nodeId)
+                .setParameter("from",from)
+                .setParameter("to",to)
+                .getResultList();
     }
 }
