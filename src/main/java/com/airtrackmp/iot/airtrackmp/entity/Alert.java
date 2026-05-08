@@ -22,6 +22,8 @@ public class Alert {
 
     private String message;
 
+    private boolean deleted;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

@@ -20,15 +20,15 @@ public class AlertController {
 
     @PostMapping
     public ResponseEntity<Alert> createAlert (@RequestBody AlertRequest request) {
-        return ResponseEntity.ok(alertService.SaveAlert(request));
+        return ResponseEntity.ok(alertService.saveAlert(request));
     }
 
-    @GetMapping("/alert/{nodeId}")
+    @GetMapping("/node/{nodeId}")
     public ResponseEntity<List<Alert>> findByNodeId (@PathVariable Integer nodeId) {
         return ResponseEntity.ok(alertService.findAlertsByNodeId(nodeId));
     }
 
-    @GetMapping("/alert/{measurementId}")
+    @GetMapping("/measurement/{measurementId}")
     public ResponseEntity<Alert> findByMeasurementId (@PathVariable Integer measurementId) {
         return ResponseEntity.ok(alertService.findAlertByMeasurement(measurementId));
     }
@@ -36,5 +36,18 @@ public class AlertController {
     @GetMapping
     public ResponseEntity<List<Alert>> findAll () {
         return ResponseEntity.ok(alertService.findAllAlerts());
+    }
+
+    @PutMapping("/{alertId}")
+    public ResponseEntity<Alert> updateAlert (@PathVariable Integer alertId, @RequestBody AlertRequest request) {
+        return ResponseEntity.ok(alertService.updateAlert(alertId, request));
+    }
+
+    @DeleteMapping("/{alertId}")
+    public ResponseEntity<String> removeAlert (@PathVariable Integer alertId) {
+
+        alertService.removeAlert(alertId);
+
+        return ResponseEntity.ok("Alert deleted successfully");
     }
 }
