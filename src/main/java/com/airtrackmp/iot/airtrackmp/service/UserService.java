@@ -6,6 +6,7 @@ import com.airtrackmp.iot.airtrackmp.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -24,6 +25,7 @@ public class UserService {
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(request.getRole())
+                .createdAt(LocalDateTime.now())
                 .build();
         return userRepo.save(user);
     }

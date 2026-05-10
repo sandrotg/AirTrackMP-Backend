@@ -4,6 +4,7 @@ import com.airtrackmp.iot.airtrackmp.dto.AlertRequest;
 import com.airtrackmp.iot.airtrackmp.entity.Alert;
 import com.airtrackmp.iot.airtrackmp.service.AlertService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,6 +19,7 @@ public class AlertController {
         this.alertService = alertService;
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping
     public ResponseEntity<Alert> createAlert (@RequestBody AlertRequest request) {
         return ResponseEntity.ok(alertService.saveAlert(request));
