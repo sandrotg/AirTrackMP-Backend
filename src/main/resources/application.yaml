@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/airtrackmp
-    username: postgres
-    password: postgres
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
   jpa:
     hibernate:
@@ -12,5 +12,12 @@ spring:
       hibernate:
         format_sql: true
 
+server:
+  port: ${PORT:8080}
+
 jwt:
   secret: airtrackmpsecretkeyairtrackmpsecretkey123456
+
+logging:
+  level:
+    org.springframework.security: DEBUG

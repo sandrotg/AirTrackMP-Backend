@@ -26,6 +26,7 @@ public class MeasurementService {
     }
 
     public Measurement saveMeasurement(MeasurementRequest request){
+        System.out.println(request.getNodeId());
         Node node = getActiveNodeOrThrow(request.getNodeId());
         Measurement measurement = Measurement.builder()
                 .node(node)

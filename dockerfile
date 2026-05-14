@@ -1,14 +1,24 @@
-# Usamos imagen con Java 21
-FROM eclipse-temurin:21-jdk-alpine
+# =========================
+# Etapa 1: Build
+# =========================
+FROM maven:3.9.9-eclipse-temurin-21-alpine AS build
 
-# Directorio dentro del contenedor
 WORKDIR /app
 
-# Copiamos el jar
-COPY target/*.jar app.jar
+COPY pom.xml .
+COPY src ./src
 
-# Exponemos el puerto
+RUN mvn clean package -DskipTests
+
+# =========================
+# Etapa 2: Runtime
+# =========================
+FROM eclipse-temurin:21-jdk-alpine
+
+WORKDIR /app
+
+COPY --from=build /app/target/*.jar app.jar
+
 EXPOSE 8080
 
-# Ejecutamos la app
 ENTRYPOINT ["java", "-jar", "app.jar"]

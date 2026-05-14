@@ -5,10 +5,12 @@ import com.airtrackmp.iot.airtrackmp.entity.Node;
 import com.airtrackmp.iot.airtrackmp.entity.Prediction;
 import com.airtrackmp.iot.airtrackmp.repository.NodeRepository;
 import com.airtrackmp.iot.airtrackmp.repository.PredictionRepository;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Service
 public class PredictionService {
 
     private final PredictionRepository predictionRepo;
