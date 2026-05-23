@@ -2,6 +2,7 @@ package com.airtrackmp.iot.airtrackmp.controller;
 
 import com.airtrackmp.iot.airtrackmp.dto.MeasurementAverageDto;
 import com.airtrackmp.iot.airtrackmp.dto.MeasurementRequest;
+import com.airtrackmp.iot.airtrackmp.dto.NodeMeasurementRequest;
 import com.airtrackmp.iot.airtrackmp.entity.Measurement;
 import com.airtrackmp.iot.airtrackmp.service.MeasurementService;
 import org.springframework.http.ResponseEntity;
@@ -21,15 +22,24 @@ public class MeasurementController {
     }
 
     @PostMapping
-    public ResponseEntity<Measurement> createMeasurement(@RequestBody MeasurementRequest request){
-        Measurement saved = measurementService.saveMeasurement(request);
-        return ResponseEntity.ok(saved);
+    public ResponseEntity<String> createMeasurement(@RequestBody MeasurementRequest request){
+        measurementService.saveMeasurement(request);
+        return ResponseEntity.accepted().body("Measurement queued successfully");
     }
 
     @PostMapping("/bulk")
-    public ResponseEntity<List<Measurement>> createMeasurementsBulk(@RequestBody List<MeasurementRequest> requests){
-        List<Measurement> listSaved = measurementService.saveMeasurementBulk(requests);
-        return ResponseEntity.ok(listSaved);
+    public ResponseEntity<String> createMeasurementsBulk(@RequestBody List<MeasurementRequest> requests){
+        measurementService.saveMeasurementBulk(requests);
+        return ResponseEntity.accepted().body("Measurements queued");
+    }
+
+    @PostMapping("/bulk/{nodeId}")
+    public ResponseEntity<String> createMeasurementsBulkByNode(@PathVariable Integer nodeId, @RequestBody List<NodeMeasurementRequest> requests){
+        measurementService.saveMeasurementBulkByNode(
+                nodeId,
+                requests
+        );
+        return ResponseEntity.accepted().body("Measurements queued");
     }
 
     @GetMapping("/node/{nodeId}/latest")

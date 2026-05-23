@@ -33,7 +33,7 @@ public class NodeService {
     }
 
     public Node updateNode(Integer id, NodeRequest request){
-        Node node = getNodeById(id);
+        Node node = getActiveNodeOrThrow(id);
 
         if(request.getName() != null) node.setName(request.getName());
 
@@ -49,7 +49,7 @@ public class NodeService {
     }
 
     public Node deleteNode(Integer id){
-        Node node = getNodeById(id);
+        Node node = getActiveNodeOrThrow(id);
 
         node.setDeleted(true);
         return nodeRepo.save(node);
@@ -60,12 +60,11 @@ public class NodeService {
             ).toList();
     }
 
-    public Node getNodeById(Integer id){
-        Node node = nodeRepo.findById(id).orElseThrow(
-                () -> new RuntimeException("Node not Found")
-        );
-        if(node.isDeleted()) throw new RuntimeException("Node is deleted");
-        return node;
+    public Node getActiveNodeOrThrow(Integer nodeId){
+        return nodeRepo.findByIdAndDeletedFalse(nodeId)
+                .orElseThrow(() ->
+                        new RuntimeException("Node not found or deleted")
+                );
     }
 
 }
