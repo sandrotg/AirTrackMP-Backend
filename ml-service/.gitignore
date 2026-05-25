@@ -1,0 +1,6 @@
+venv/
+__pycache__/
+*.pyc
+model_pm25.pkl
+model_pm10.pkl
+dataset.pkl

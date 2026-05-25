@@ -13,19 +13,27 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  ml-service:
+    build: ./ml-service
+    container_name: airtrackmp_ml
+    restart: always
+    ports:
+      - "5000:5000"
+
   api:
     build: .
     container_name: airtrackmp_api
     restart: always
     depends_on:
       - db
+      - ml-service
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/airtrackmp
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      DB_URL: jdbc:postgresql://db:5432/airtrackmp
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      ML_SERVICE_URL: http://ml-service:5000
 
   kafka:
     image: bitnami/kafka:latest
