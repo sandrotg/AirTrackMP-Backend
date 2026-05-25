@@ -13,7 +13,7 @@ spring:
         format_sql: true
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9094}
 
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -41,3 +41,5 @@ ml:
 logging:
   level:
     org.springframework.security: DEBUG
+    com.airtrackmp.iot.airtrackmp.service.producers: INFO
+    com.airtrackmp.iot.airtrackmp.service.consumers: INFO

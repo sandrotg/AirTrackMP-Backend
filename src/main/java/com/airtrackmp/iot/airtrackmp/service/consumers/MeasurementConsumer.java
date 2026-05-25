@@ -1,119 +1,66 @@
-package com.airtrackmp.iot.airtrackmp.service.consumers;
-
-import com.airtrackmp.iot.airtrackmp.dto.MeasurementRequest;
-import com.airtrackmp.iot.airtrackmp.dto.NodeBulkMeasurementRequest;
-import com.airtrackmp.iot.airtrackmp.dto.NodeMeasurementRequest;
-import com.airtrackmp.iot.airtrackmp.entity.Measurement;
-import com.airtrackmp.iot.airtrackmp.entity.Node;
-import com.airtrackmp.iot.airtrackmp.repository.MeasurementRepository;
-import com.airtrackmp.iot.airtrackmp.repository.NodeRepository;
-import com.airtrackmp.iot.airtrackmp.service.NodeService;
-import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-@Service
-public class MeasurementConsumer {
-
-    private final MeasurementRepository measurementRepo;
-    private final NodeRepository nodeRepo;
-    private final NodeService nodeService;
-
-    public MeasurementConsumer(MeasurementRepository measurementRepo, NodeRepository nodeRepo, NodeService nodeService){
-        this.measurementRepo = measurementRepo;
-        this.nodeRepo = nodeRepo;
-        this.nodeService = nodeService;
-    }
-
-    @KafkaListener(topics = "measurements-topic", groupId = "airtrack-group")
-    public void consumeMeasurement(MeasurementRequest request){
-        Node node = nodeService.getActiveNodeOrThrow(request.getNodeId());
-        Measurement measurement = Measurement.builder()
-                .node(node)
-                .pm25(request.getPm25())
-                .pm10(request.getPm10())
-                .temperature(request.getTemperature())
-                .humidity(request.getHumidity())
-                .recordedAt(
-                        request.getRecordedAt() != null
-                                ? request.getRecordedAt()
-                                : LocalDateTime.now()
-                )
-                .build();
-        measurementRepo.save(measurement);
-    }
-
-    @KafkaListener(topics = "measurements-bulk-topic", groupId = "airtrack-group")
-    public void consumeBulkMeasurements(List<MeasurementRequest> requests){
-        // 1. Obtener IDs únicos
-        List<Integer> nodeIds = requests.stream()
-                .map(request -> request.getNodeId())
-                .distinct()
-                .toList();
-
-        // 2. Traer nodos en una sola query
-        List<Node> nodes = nodeRepo.findAllById(nodeIds);
-
-        // 3. Convertir a mapa
-        Map<Integer, Node> nodeMap = nodes.stream()
-                .filter(node -> !Boolean.TRUE.equals(node.isDeleted()))
-                .collect(Collectors.toMap(Node::getId, node -> node)); //los :: son methond reference, una forma abreviada de indicar que se ejecuta en la iteracion, evitando escribir node -> node.getId
-
-        List<Measurement> savedMeasurements = new ArrayList<>();
-
-        for(MeasurementRequest request: requests){
-            Node node = nodeMap.get(request.getNodeId());
-
-            if (node == null) throw new RuntimeException("NodeNotFoundOrDeleted: " + request.getNodeId());
-
-            Measurement measurement = Measurement.builder()
-                    .node(node)
-                    .pm25(request.getPm25())
-                    .pm10(request.getPm10())
-                    .temperature(request.getTemperature())
-                    .humidity(request.getHumidity())
-                    .recordedAt(
-                            request.getRecordedAt() != null
-                                    ? request.getRecordedAt()
-                                    : LocalDateTime.now()
-                    ).build();
-            savedMeasurements.add(measurement);
-        }
-        measurementRepo.saveAll(savedMeasurements);
-    }
-
-    @KafkaListener(topics = "measurements-node-bulk-topic", groupId = "airtrack-group")
-    public void consumeNodeBulkMeasurements(NodeBulkMeasurementRequest bulkRequest){
-        Integer nodeId = bulkRequest.getNodeId();
-
-        Node node = nodeService.getActiveNodeOrThrow(nodeId);
-
-        List<Measurement> measurements = new ArrayList<>();
-
-        for(NodeMeasurementRequest request :
-                bulkRequest.getMeasurements()){
-
-            Measurement measurement = Measurement.builder()
-                    .node(node)
-                    .pm25(request.getPm25())
-                    .pm10(request.getPm10())
-                    .temperature(request.getTemperature())
-                    .humidity(request.getHumidity())
-                    .recordedAt(
-                            request.getRecordedAt() != null
-                                    ? request.getRecordedAt()
-                                    : LocalDateTime.now()
-                    )
-                    .build();
-
-            measurements.add(measurement);
-        }
-
-        measurementRepo.saveAll(measurements);
-    }
-}
+package com.airtrackmp.iot.airtrackmp.service.consumers;
+
+import com.airtrackmp.iot.airtrackmp.dto.BulkMeasurementsRequest;
+import com.airtrackmp.iot.airtrackmp.dto.MeasurementRequest;
+import com.airtrackmp.iot.airtrackmp.dto.NodeBulkMeasurementRequest;
+import com.airtrackmp.iot.airtrackmp.entity.Measurement;
+import com.airtrackmp.iot.airtrackmp.service.MeasurementAlertService;
+import com.airtrackmp.iot.airtrackmp.service.MeasurementPersistenceService;
+import com.airtrackmp.iot.airtrackmp.service.producers.MeasurementProducer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class MeasurementConsumer {
+
+    private static final Logger log = LoggerFactory.getLogger(MeasurementConsumer.class);
+
+    private final MeasurementPersistenceService measurementPersistenceService;
+    private final MeasurementAlertService measurementAlertService;
+
+    public MeasurementConsumer(
+            MeasurementPersistenceService measurementPersistenceService,
+            MeasurementAlertService measurementAlertService
+    ) {
+        this.measurementPersistenceService = measurementPersistenceService;
+        this.measurementAlertService = measurementAlertService;
+    }
+
+    @KafkaListener(
+            topics = MeasurementProducer.MEASUREMENTS_TOPIC,
+            groupId = "airtrack-group",
+            containerFactory = "measurementKafkaListenerContainerFactory"
+    )
+    public void consumeMeasurement(MeasurementRequest request) {
+        Measurement saved = measurementPersistenceService.save(request);
+        measurementAlertService.evaluateAndPublish(saved);
+        log.info("Measurement persisted for node {}", request.getNodeId());
+    }
+
+    @KafkaListener(
+            topics = MeasurementProducer.MEASUREMENTS_BULK_TOPIC,
+            groupId = "airtrack-group",
+            containerFactory = "bulkMeasurementKafkaListenerContainerFactory"
+    )
+    public void consumeBulkMeasurements(BulkMeasurementsRequest bulkRequest) {
+        List<Measurement> saved = measurementPersistenceService.saveBulk(bulkRequest.getMeasurements());
+        measurementAlertService.evaluateAndPublishAll(saved);
+        log.info("Bulk measurements persisted: {}", bulkRequest.getMeasurements().size());
+    }
+
+    @KafkaListener(
+            topics = MeasurementProducer.MEASUREMENTS_NODE_BULK_TOPIC,
+            groupId = "airtrack-group",
+            containerFactory = "nodeBulkMeasurementKafkaListenerContainerFactory"
+    )
+    public void consumeNodeBulkMeasurements(NodeBulkMeasurementRequest bulkRequest) {
+        List<Measurement> saved = measurementPersistenceService.saveNodeBulk(bulkRequest);
+        measurementAlertService.evaluateAndPublishAll(saved);
+        log.info("Node bulk measurements persisted for node {}", bulkRequest.getNodeId());
+    }
+}
+

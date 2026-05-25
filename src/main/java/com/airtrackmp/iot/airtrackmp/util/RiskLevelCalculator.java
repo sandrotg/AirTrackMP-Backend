@@ -17,4 +17,18 @@ public final class RiskLevelCalculator {
         }
         return "LOW";
     }
+
+    public static boolean requiresAlert(float pm25, float pm10) {
+        String level = fromPmValues(pm25, pm10);
+        return "HIGH".equals(level) || "CRITICAL".equals(level);
+    }
+
+    public static String buildAlertMessage(float pm25, float pm10, String level) {
+        return String.format(
+                "Air quality alert [%s]: PM2.5=%.1f ug/m3, PM10=%.1f ug/m3 exceed safe thresholds",
+                level,
+                pm25,
+                pm10
+        );
+    }
 }
