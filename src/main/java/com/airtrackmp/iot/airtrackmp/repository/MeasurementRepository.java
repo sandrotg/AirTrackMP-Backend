@@ -11,4 +11,6 @@ public interface MeasurementRepository extends JpaRepository<Measurement, Intege
 
     List<Measurement> findTop10ByNodeIdOrderByRecordedAtDesc(Integer nodeId);
 
+    List<Measurement> findTop3ByNodeIdOrderByRecordedAtDesc(Integer nodeId);
+
 }

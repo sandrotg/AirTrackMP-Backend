@@ -20,13 +20,12 @@ public class MeasurementService {
     private final MeasurementRepository measurementRepo;
     private final NodeRepository nodeRepo;
 
-    public MeasurementService(MeasurementRepository measurementRepo, NodeRepository nodeRepo){
+    public MeasurementService(MeasurementRepository measurementRepo, NodeRepository nodeRepo) {
         this.measurementRepo = measurementRepo;
         this.nodeRepo = nodeRepo;
     }
 
-    public Measurement saveMeasurement(MeasurementRequest request){
-        System.out.println(request.getNodeId());
+    public Measurement saveMeasurement(MeasurementRequest request) {
         Node node = getActiveNodeOrThrow(request.getNodeId());
         Measurement measurement = Measurement.builder()
                 .node(node)
@@ -43,28 +42,26 @@ public class MeasurementService {
         return measurementRepo.save(measurement);
     }
 
-    public List<Measurement> saveMeasurementBulk(List<MeasurementRequest> requests){
-
-        // 1. Obtener IDs únicos
+    public List<Measurement> saveMeasurementBulk(List<MeasurementRequest> requests) {
         List<Integer> nodeIds = requests.stream()
-                .map(request -> request.getNodeId())
+                .map(MeasurementRequest::getNodeId)
                 .distinct()
                 .toList();
 
-        // 2. Traer nodos en una sola query
         List<Node> nodes = nodeRepo.findAllById(nodeIds);
 
-        // 3. Convertir a mapa
         Map<Integer, Node> nodeMap = nodes.stream()
                 .filter(node -> !Boolean.TRUE.equals(node.isDeleted()))
-                .collect(Collectors.toMap(Node::getId, node -> node)); //los :: son methond reference, una forma abreviada de indicar que se ejecuta en la iteracion, evitando escribir node -> node.getId
+                .collect(Collectors.toMap(Node::getId, node -> node));
 
         List<Measurement> savedMeasurements = new ArrayList<>();
 
-        for(MeasurementRequest request: requests){
+        for (MeasurementRequest request : requests) {
             Node node = nodeMap.get(request.getNodeId());
 
-            if (node == null) throw new RuntimeException("NodeNotFoundOrDeleted: " + request.getNodeId());
+            if (node == null) {
+                throw new RuntimeException("NodeNotFoundOrDeleted: " + request.getNodeId());
+            }
 
             Measurement measurement = Measurement.builder()
                     .node(node)
@@ -79,23 +76,21 @@ public class MeasurementService {
                     ).build();
             savedMeasurements.add(measurement);
         }
+
         return measurementRepo.saveAll(savedMeasurements);
     }
 
-
-    public List<Measurement> getMeasurementsByNode(Integer nodeId){
-
-        Node node = getActiveNodeOrThrow(nodeId);
+    public List<Measurement> getMeasurementsByNode(Integer nodeId) {
+        getActiveNodeOrThrow(nodeId);
         return measurementRepo.findByNodeIdOrderByRecordedAtDesc(nodeId);
     }
 
-    public List<Measurement> getLastMeasurements(Integer nodeId){
-
-        Node node = getActiveNodeOrThrow(nodeId);
+    public List<Measurement> getLastMeasurements(Integer nodeId) {
+        getActiveNodeOrThrow(nodeId);
         return measurementRepo.findTop10ByNodeIdOrderByRecordedAtDesc(nodeId);
     }
 
-    public List<Measurement> getAllMeasurements(){
+    public List<Measurement> getAllMeasurements() {
         return measurementRepo.findAll();
     }
 
@@ -104,9 +99,11 @@ public class MeasurementService {
             LocalDateTime from,
             LocalDateTime to,
             String groupBy
-    ){
-        Node node = getActiveNodeOrThrow(nodeId);
-        if (from.isAfter(to)) throw new IllegalArgumentException("Invalid date range");
+    ) {
+        getActiveNodeOrThrow(nodeId);
+        if (from.isAfter(to)) {
+            throw new IllegalArgumentException("Invalid date range");
+        }
 
         return measurementRepo.getAverages(nodeId, from, to, groupBy);
     }
@@ -115,14 +112,16 @@ public class MeasurementService {
             Integer nodeId,
             LocalDateTime from,
             LocalDateTime to
-    ){
-        Node node = getActiveNodeOrThrow(nodeId);
-        if (from.isAfter(to)) throw new IllegalArgumentException("Invalid date range");
+    ) {
+        getActiveNodeOrThrow(nodeId);
+        if (from.isAfter(to)) {
+            throw new IllegalArgumentException("Invalid date range");
+        }
 
         return measurementRepo.getIntervalMeasurements(nodeId, from, to);
     }
 
-    private Node getActiveNodeOrThrow(Integer nodeId){
+    private Node getActiveNodeOrThrow(Integer nodeId) {
         Node node = nodeRepo.findById(nodeId)
                 .orElseThrow(() -> new RuntimeException("Node Not Found"));
 

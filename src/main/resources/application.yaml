@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/airtrackmp}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
 
   jpa:
     hibernate:
@@ -17,6 +17,10 @@ server:
 
 jwt:
   secret: airtrackmpsecretkeyairtrackmpsecretkey123456
+
+ml:
+  service:
+    url: ${ML_SERVICE_URL:http://localhost:5000}
 
 logging:
   level:

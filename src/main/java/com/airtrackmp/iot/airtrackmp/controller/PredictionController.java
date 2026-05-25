@@ -17,8 +17,13 @@ public class PredictionController {
     }
 
     @PostMapping
-    public ResponseEntity<Prediction> createAlert (@RequestBody PredictionRequest request) {
+    public ResponseEntity<Prediction> createPrediction(@RequestBody PredictionRequest request) {
         return ResponseEntity.ok(predictionService.savePrediction(request));
+    }
+
+    @PostMapping("/generate/node/{nodeId}")
+    public ResponseEntity<Prediction> generateForNode(@PathVariable Integer nodeId) {
+        return ResponseEntity.ok(predictionService.generateForLatestMeasurement(nodeId));
     }
 
     @GetMapping
