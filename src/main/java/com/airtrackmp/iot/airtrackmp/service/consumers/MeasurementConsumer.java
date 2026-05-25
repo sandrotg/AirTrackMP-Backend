@@ -9,6 +9,7 @@ import com.airtrackmp.iot.airtrackmp.repository.MeasurementRepository;
 import com.airtrackmp.iot.airtrackmp.repository.NodeRepository;
 import com.airtrackmp.iot.airtrackmp.service.NodeService;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Service
 public class MeasurementConsumer {
 
     private final MeasurementRepository measurementRepo;
