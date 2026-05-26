@@ -19,17 +19,22 @@ public class JwtService {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    public String generateToken(User user) {
+    private static final long DEFAULT_TOKEN_TTL_MS = 86_400_000L;
+    private static final String NODE_ROLE = "NODE";
 
-        return Jwts.builder()
+    public String generateToken(User user) {
+        JwtBuilder builder = Jwts.builder()
                 .setSubject(user.getUsername())
                 .claim("role", user.getRole())
-                .setIssuedAt(new Date())
-                .setExpiration(
-                        new Date(System.currentTimeMillis() + 86400000)
-                )
-                .signWith(getKey(), SignatureAlgorithm.HS256)
-                .compact();
+                .setIssuedAt(new Date());
+
+        if (!NODE_ROLE.equals(user.getRole())) {
+            builder.setExpiration(
+                    new Date(System.currentTimeMillis() + DEFAULT_TOKEN_TTL_MS)
+            );
+        }
+
+        return builder.signWith(getKey(), SignatureAlgorithm.HS256).compact();
     }
 
     public String extractUsername(String token) {

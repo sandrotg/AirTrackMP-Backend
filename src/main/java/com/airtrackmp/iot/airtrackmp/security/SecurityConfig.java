@@ -19,6 +19,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
@@ -43,9 +44,11 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
+                        .requestMatchers("/api/auth/register-node").hasAuthority("ADMIN")
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/nodes/**").hasAuthority("ADMIN")
-                        .requestMatchers("/api/measurements/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/measurements/**").hasAuthority("NODE")
+                        .requestMatchers("/api/measurements/**").authenticated()
                         .requestMatchers("/api/alert/**").authenticated()
                         .requestMatchers("/api/prediction/**").authenticated()
                         .requestMatchers("/error/**").permitAll()

@@ -7,10 +7,13 @@ import com.airtrackmp.iot.airtrackmp.service.producers.AlertProducer;
 import com.airtrackmp.iot.airtrackmp.util.RiskLevelCalculator;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
 public class MeasurementAlertService {
+
+    private static final int CONSECUTIVE_DANGEROUS_THRESHOLD = 7;
 
     private final AlertRepository alertRepo;
     private final AlertProducer alertProducer;
@@ -21,7 +24,7 @@ public class MeasurementAlertService {
     }
 
     public void evaluateAndPublish(Measurement measurement) {
-        if (measurement.getPm25() == null && measurement.getPm10() == null) {
+        if (!hasPmData(measurement)) {
             return;
         }
 
@@ -32,6 +35,47 @@ public class MeasurementAlertService {
             return;
         }
 
+        publishAlertIfAbsent(measurement, pm25, pm10);
+    }
+
+    public void evaluateAndPublishAll(List<Measurement> measurements) {
+        if (measurements == null || measurements.isEmpty()) {
+            return;
+        }
+
+        List<Measurement> sorted = measurements.stream()
+                .sorted(Comparator.comparing(
+                        Measurement::getRecordedAt,
+                        Comparator.nullsLast(Comparator.naturalOrder())
+                ))
+                .toList();
+
+        int consecutiveDangerous = 0;
+        for (Measurement measurement : sorted) {
+            if (!hasPmData(measurement)) {
+                consecutiveDangerous = 0;
+                continue;
+            }
+
+            float pm25 = measurement.getPm25() != null ? measurement.getPm25() : 0f;
+            float pm10 = measurement.getPm10() != null ? measurement.getPm10() : 0f;
+
+            if (RiskLevelCalculator.requiresAlert(pm25, pm10)) {
+                consecutiveDangerous++;
+                if (consecutiveDangerous == CONSECUTIVE_DANGEROUS_THRESHOLD) {
+                    publishAlertIfAbsent(measurement, pm25, pm10);
+                }
+            } else {
+                consecutiveDangerous = 0;
+            }
+        }
+    }
+
+    private boolean hasPmData(Measurement measurement) {
+        return measurement.getPm25() != null || measurement.getPm10() != null;
+    }
+
+    private void publishAlertIfAbsent(Measurement measurement, float pm25, float pm10) {
         if (alertRepo.findByMeasurementId(measurement.getId()) != null) {
             return;
         }
@@ -45,9 +89,5 @@ public class MeasurementAlertService {
         event.setMessage(RiskLevelCalculator.buildAlertMessage(pm25, pm10, level));
 
         alertProducer.sendAlert(event);
-    }
-
-    public void evaluateAndPublishAll(List<Measurement> measurements) {
-        measurements.forEach(this::evaluateAndPublish);
     }
 }

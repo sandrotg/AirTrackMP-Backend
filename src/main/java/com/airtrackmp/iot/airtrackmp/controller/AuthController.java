@@ -5,6 +5,7 @@ import com.airtrackmp.iot.airtrackmp.entity.User;
 import com.airtrackmp.iot.airtrackmp.repository.UserRepository;
 import com.airtrackmp.iot.airtrackmp.security.JwtService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,6 +14,8 @@ import java.time.LocalDateTime;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    private static final String NODE_ROLE = "NODE";
 
     private final UserRepository userRepo;
     private final PasswordEncoder passwordEncoder;
@@ -45,6 +48,10 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register (@RequestBody RegisterRequest request) {
 
+        if (NODE_ROLE.equalsIgnoreCase(request.getRole())) {
+            throw new RuntimeException("NODE role must be created via /api/auth/register-node");
+        }
+
         if (userRepo.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("User already exists");
         }
@@ -56,6 +63,26 @@ public class AuthController {
         user.setRole(request.getRole());
         user.setCreatedAt(LocalDateTime.now());
         userRepo.save(user);
+        String token = jwtService.generateToken(user);
+        return ResponseEntity.ok(new AuthResponse(token));
+    }
+
+    @PostMapping("/register-node")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<AuthResponse> registerNode(@RequestBody RegisterRequest request) {
+
+        if (userRepo.findByEmail(request.getEmail()).isPresent()) {
+            throw new RuntimeException("User already exists");
+        }
+
+        User user = new User();
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setRole(NODE_ROLE);
+        user.setCreatedAt(LocalDateTime.now());
+        userRepo.save(user);
+
         String token = jwtService.generateToken(user);
         return ResponseEntity.ok(new AuthResponse(token));
     }
