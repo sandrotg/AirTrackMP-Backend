@@ -21,6 +21,10 @@ import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,12 +39,20 @@ public class KafkaConfig {
     private String groupId;
 
     @Bean
-    public ProducerFactory<String, Object> producerFactory() {
+    public ObjectMapper kafkaObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        return mapper;
+    }
+
+    @Bean
+    public ProducerFactory<String, Object> producerFactory(ObjectMapper kafkaObjectMapper) {
         Map<String, Object> config = new HashMap<>();
         config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-        return new DefaultKafkaProducerFactory<>(config);
+        JsonSerializer<Object> serializer = new JsonSerializer<>(kafkaObjectMapper);
+        return new DefaultKafkaProducerFactory<>(config, new StringSerializer(), serializer);
     }
 
     @Bean
@@ -49,23 +61,23 @@ public class KafkaConfig {
     }
 
     @Bean
-    public ConsumerFactory<String, MeasurementRequest> measurementConsumerFactory() {
-        return buildConsumerFactory(MeasurementRequest.class);
+    public ConsumerFactory<String, MeasurementRequest> measurementConsumerFactory(ObjectMapper kafkaObjectMapper) {
+        return buildConsumerFactory(MeasurementRequest.class, kafkaObjectMapper);
     }
 
     @Bean
-    public ConsumerFactory<String, BulkMeasurementsRequest> bulkMeasurementConsumerFactory() {
-        return buildConsumerFactory(BulkMeasurementsRequest.class);
+    public ConsumerFactory<String, BulkMeasurementsRequest> bulkMeasurementConsumerFactory(ObjectMapper kafkaObjectMapper) {
+        return buildConsumerFactory(BulkMeasurementsRequest.class, kafkaObjectMapper);
     }
 
     @Bean
-    public ConsumerFactory<String, NodeBulkMeasurementRequest> nodeBulkMeasurementConsumerFactory() {
-        return buildConsumerFactory(NodeBulkMeasurementRequest.class);
+    public ConsumerFactory<String, NodeBulkMeasurementRequest> nodeBulkMeasurementConsumerFactory(ObjectMapper kafkaObjectMapper) {
+        return buildConsumerFactory(NodeBulkMeasurementRequest.class, kafkaObjectMapper);
     }
 
     @Bean
-    public ConsumerFactory<String, AlertEvent> alertConsumerFactory() {
-        return buildConsumerFactory(AlertEvent.class);
+    public ConsumerFactory<String, AlertEvent> alertConsumerFactory(ObjectMapper kafkaObjectMapper) {
+        return buildConsumerFactory(AlertEvent.class, kafkaObjectMapper);
     }
 
     @Bean
@@ -108,8 +120,8 @@ public class KafkaConfig {
         return factory;
     }
 
-    private <T> ConsumerFactory<String, T> buildConsumerFactory(Class<T> targetType) {
-        JsonDeserializer<T> deserializer = new JsonDeserializer<>(targetType);
+    private <T> ConsumerFactory<String, T> buildConsumerFactory(Class<T> targetType, ObjectMapper kafkaObjectMapper) {
+        JsonDeserializer<T> deserializer = new JsonDeserializer<>(targetType, kafkaObjectMapper);
         deserializer.addTrustedPackages("*");
         deserializer.setUseTypeHeaders(false);
 
