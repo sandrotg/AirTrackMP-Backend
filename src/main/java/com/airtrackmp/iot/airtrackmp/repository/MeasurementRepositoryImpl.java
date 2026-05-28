@@ -30,7 +30,7 @@ public class MeasurementRepositoryImpl implements MeasurementRepositoryCustom{
                 AVG(m.pm10),
                 AVG(m.temperature),
                 AVG(m.humidity)
-            FROM measurement m
+            FROM measurements m
             WHERE m.node_id = :nodeId
               AND m.recorded_at BETWEEN :from AND :to
             GROUP BY period
@@ -57,17 +57,27 @@ public class MeasurementRepositoryImpl implements MeasurementRepositoryCustom{
             LocalDateTime from,
             LocalDateTime to
     ){
-        String sql = """
-    SELECT *
-    FROM measurement m
-    WHERE m.node_id = :nodeId
-      AND m.recorded_at BETWEEN :from AND :to
-    ORDER BY m.recorded_at DESC
-""";
-        return entityManager.createNativeQuery(sql, Measurement.class)
-                .setParameter("nodeId",nodeId)
-                .setParameter("from",from)
-                .setParameter("to",to)
+        return entityManager.createQuery("""
+                SELECT m FROM Measurement m
+                WHERE m.node.id = :nodeId
+                  AND m.recordedAt BETWEEN :from AND :to
+                ORDER BY m.recordedAt DESC
+                """, Measurement.class)
+                .setParameter("nodeId", nodeId)
+                .setParameter("from", from)
+                .setParameter("to", to)
+                .getResultList();
+    }
+
+    @Override
+    public List<Measurement> getIntervalMeasurements(LocalDateTime from, LocalDateTime to) {
+        return entityManager.createQuery("""
+                SELECT m FROM Measurement m
+                WHERE m.recordedAt BETWEEN :from AND :to
+                ORDER BY m.recordedAt DESC
+                """, Measurement.class)
+                .setParameter("from", from)
+                .setParameter("to", to)
                 .getResultList();
     }
 }

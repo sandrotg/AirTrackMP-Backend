@@ -20,4 +20,9 @@ public interface MeasurementRepositoryCustom {
             LocalDateTime from,
             LocalDateTime to
     );
+
+    List<Measurement> getIntervalMeasurements(
+            LocalDateTime from,
+            LocalDateTime to
+    );
 }

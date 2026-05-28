@@ -52,6 +52,17 @@ public class MeasurementController {
         return ResponseEntity.ok(measurementService.getAllMeasurements());
     }
 
+    @GetMapping("/interval")
+    public ResponseEntity<List<Measurement>> getIntervalAll(
+            @RequestParam String from,
+            @RequestParam String to
+    ) {
+        return ResponseEntity.ok(measurementService.getIntervalMeasurements(
+                LocalDateTime.parse(from),
+                LocalDateTime.parse(to)
+        ));
+    }
+
     @GetMapping("/node/{nodeId}")
     public ResponseEntity<List<Measurement>> getInterval(
             @PathVariable Integer nodeId,

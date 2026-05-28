@@ -46,6 +46,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
 
                         .requestMatchers("/api/auth/register-node").hasAuthority("ADMIN")
+                        .requestMatchers("api/user").hasAuthority("ADMIN")
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/nodes/**").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/measurements/**").hasAuthority("NODE")

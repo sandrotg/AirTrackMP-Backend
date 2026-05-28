@@ -86,4 +86,12 @@ public class MeasurementService {
 
         return measurementRepo.getIntervalMeasurements(nodeId, from, to);
     }
+
+    public List<Measurement> getIntervalMeasurements(LocalDateTime from, LocalDateTime to) {
+        if (from.isAfter(to)) {
+            throw new IllegalArgumentException("Invalid date range");
+        }
+
+        return measurementRepo.getIntervalMeasurements(from, to);
+    }
 }
