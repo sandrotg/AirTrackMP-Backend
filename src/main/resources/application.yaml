@@ -30,6 +30,14 @@ spring:
 
 server:
   port: ${PORT:8080}
+  forward-headers-strategy: framework
+  # SSL directo en Spring (opcional): SSL_ENABLED=true + SSL_KEY_STORE + SSL_KEY_STORE_PASSWORD
+  ssl:
+    enabled: ${SSL_ENABLED:false}
+
+app:
+  cors:
+    allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,https://localhost:*,http://127.0.0.1:*,https://127.0.0.1:*,https://*.vercel.app}
 
 jwt:
   secret: airtrackmpsecretkeyairtrackmpsecretkey123456

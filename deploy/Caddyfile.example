@@ -1,0 +1,9 @@
+# Certificado gratuito Let's Encrypt (renovación automática vía Caddy)
+{
+	email {$ACME_EMAIL}
+}
+
+{$API_DOMAIN} {
+	encode gzip
+	reverse_proxy api:8080
+}
